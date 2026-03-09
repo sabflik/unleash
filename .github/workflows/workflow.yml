@@ -35,3 +35,16 @@ jobs:
 
       - name: Run make tf-sec
         run: make tf-sec
+
+  tf-plan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Run make tf-plan
+        run: make tf-plan
