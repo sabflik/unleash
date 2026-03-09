@@ -1,13 +1,22 @@
-# compute module placeholder
-# Add compute resources (EC2, autoscaling, etc.) here
-# You can reference the default provider (us-east-1) or the aliased
-# provider aws.euw (eu-west-1) in resource blocks, e.g.:
-#
-# resource "aws_instance" "example" {
-#   provider = aws.euw
-#   # ...
-# }
-
-terraform {
-  required_version = ">= 1.0.0"
+locals {
+  # A set of regions to deploy resources to
+  regions = [
+    "us-east-1",
+    "eu-west-1",
+  ]
 }
+
+resource "aws_dynamodb_table" "greeting" {
+  for_each = toset(local.regions)
+  region = each.key
+
+  name         = "GreetingLogs"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "ID"
+
+  attribute {
+    name = "ID"
+    type = "S"
+  }
+}
+

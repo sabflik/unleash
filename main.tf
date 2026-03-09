@@ -7,6 +7,13 @@ terraform {
     region = "ap-southeast-2"
     encrypt = true
   }
+
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "6.34.0"
+    }
+  }
 }
 
 provider "aws" {
