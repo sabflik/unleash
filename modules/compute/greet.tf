@@ -55,38 +55,79 @@ data "archive_file" "greet_lambda_zip" {
   }
 }
 
-# # API Gateway integration with Lambda
-# resource "aws_api_gateway_integration" "greet_lambda" {
-#   rest_api_id      = aws_api_gateway_rest_api.api.id
-#   resource_id      = aws_api_gateway_resource.greet.id
-#   http_method      = aws_api_gateway_method.greet_get.http_method
-#   type             = "AWS_PROXY"
-#   integration_http_method = "POST"
-#   uri              = aws_lambda_function.greet.invoke_arn
-# }
 
-# # Lambda permission for API Gateway invocation
-# resource "aws_lambda_permission" "api_gateway_greet" {
-#   statement_id  = "AllowAPIGatewayInvoke"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.greet.function_name
-#   principal     = "apigateway.amazonaws.com"
-#   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
-# }
+# Integration: greet endpoint → Lambda
+resource "aws_api_gateway_integration" "greet_lambda" {
+  region                  = each.key
+  for_each                = var.regions
+  rest_api_id             = aws_api_gateway_rest_api.api[each.key].id
+  resource_id             = aws_api_gateway_resource.greet[each.key].id
+  http_method             = aws_api_gateway_method.greet_get[each.key].http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.greet[each.key].invoke_arn
+}
 
-# # API Gateway method response
-# resource "aws_api_gateway_method_response" "greet_response" {
-#   rest_api_id = aws_api_gateway_rest_api.api.id
-#   resource_id = aws_api_gateway_resource.greet.id
-#   http_method = aws_api_gateway_method.greet_get.http_method
-#   status_code = "200"
-# }
+# Lambda permission for API Gateway invocation
+resource "aws_lambda_permission" "api_gateway_greet" {
+  region        = each.key
+  for_each      = var.regions
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.greet[each.key].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api[each.key].execution_arn}/*/*"
+}
 
-# # API Gateway integration response
-# resource "aws_api_gateway_integration_response" "greet_integration_response" {
-#   rest_api_id      = aws_api_gateway_rest_api.api.id
-#   resource_id      = aws_api_gateway_resource.greet.id
-#   http_method      = aws_api_gateway_method.greet_get.http_method
-#   status_code      = aws_api_gateway_method_response.greet_response.status_code
-#   depends_on       = [aws_api_gateway_integration.greet_lambda]
+# API Gateway method response
+resource "aws_api_gateway_method_response" "greet_response" {
+  region        = each.key
+  for_each      = var.regions
+  rest_api_id = aws_api_gateway_rest_api.api[each.key].id
+  resource_id = aws_api_gateway_resource.greet[each.key].id
+  http_method = aws_api_gateway_method.greet_get[each.key].http_method
+  status_code = "200"
+}
+
+# API Gateway integration response
+resource "aws_api_gateway_integration_response" "greet_integration_response" {
+  region        = each.key
+  for_each      = var.regions
+  rest_api_id      = aws_api_gateway_rest_api.api[each.key].id
+  resource_id      = aws_api_gateway_resource.greet[each.key].id
+  http_method      = aws_api_gateway_method.greet_get[each.key].http_method
+  status_code      = aws_api_gateway_method_response.greet_response[each.key].status_code
+  depends_on       = [aws_api_gateway_integration.greet_lambda]
+}
+
+# API Gateway deployment
+resource "aws_api_gateway_deployment" "greet_api" {
+  region      = each.key
+  for_each    = var.regions
+  rest_api_id = aws_api_gateway_rest_api.api[each.key].id
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+        aws_api_gateway_integration.greet_lambda[each.key],
+        aws_api_gateway_method_response.greet_response[each.key]
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# API Gateway stage
+resource "aws_api_gateway_stage" "greet_prod" {
+  for_each          = var.regions
+  region            = each.value
+  deployment_id     = aws_api_gateway_deployment.greet_api[each.key].id
+  rest_api_id       = aws_api_gateway_rest_api.api[each.key].id
+  stage_name        = "greet_prod"
+}
+
+# output "greet_api_invoke_urls" {
+#   description = "Greet API Gateway invoke URLs by region"
+#   value       = { for k, v in aws_api_gateway_stage.greet_prod : k => v.invoke_url }
 # }
