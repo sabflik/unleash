@@ -1,8 +1,8 @@
 # VPC for compute resources
 resource "aws_vpc" "main" {
-  for_each           = var.regions
-  region             = each.key
-  cidr_block         = var.vpc_cidr
+  for_each             = var.regions
+  region               = each.key
+  cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
 
@@ -70,7 +70,7 @@ resource "aws_route" "public_internet_gateway" {
 # Associate public subnet with route table
 resource "aws_route_table_association" "public" {
   for_each       = var.regions
-  region      = each.key
+  region         = each.key
   subnet_id      = aws_subnet.public[each.key].id
   route_table_id = aws_route_table.public[each.key].id
 }

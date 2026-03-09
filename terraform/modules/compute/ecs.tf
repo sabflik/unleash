@@ -1,7 +1,7 @@
 # ECS Cluster for Fargate tasks
 resource "aws_ecs_cluster" "main" {
   for_each = var.regions
-  region  = each.key
+  region   = each.key
   name     = "compute-cluster-${each.key}"
 
   setting {
@@ -16,10 +16,10 @@ resource "aws_ecs_cluster" "main" {
 
 # CloudWatch Log Group for ECS tasks
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  for_each            = var.regions
-  region = each.key
-  name                = "/ecs/compute-${each.key}"
-  retention_in_days   = 7
+  for_each          = var.regions
+  region            = each.key
+  name              = "/ecs/compute-${each.key}"
+  retention_in_days = 7
 
   tags = {
     Region = each.key
@@ -71,7 +71,7 @@ resource "aws_iam_role" "ecs_task_role" {
 # Security group for ECS tasks in public subnet
 resource "aws_security_group" "ecs_tasks" {
   for_each    = var.regions
-  region = each.key
+  region      = each.key
   name        = "ecs-tasks-sg-${each.key}"
   description = "Security group for ECS tasks in ${each.key}"
   vpc_id      = aws_vpc.main[each.key].id
@@ -104,8 +104,8 @@ resource "aws_security_group" "ecs_tasks" {
 
 # ECS Task Definition for Fargate
 resource "aws_ecs_task_definition" "app" {
-  for_each    = var.regions
-  region = each.key
+  for_each                 = var.regions
+  region                   = each.key
   family                   = "compute-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -141,7 +141,7 @@ resource "aws_ecs_task_definition" "app" {
 # ECS Service for Fargate tasks in public subnet
 resource "aws_ecs_service" "app" {
   for_each            = var.regions
-  region = each.key
+  region              = each.key
   name                = "compute-service-${each.key}"
   cluster             = aws_ecs_cluster.main[each.key].id
   task_definition     = aws_ecs_task_definition.app[each.key].arn

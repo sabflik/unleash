@@ -1,3 +1,14 @@
+terraform {
+  required_version = ">= 1.14.6"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "6.34.0"
+    }
+  }
+}
+
 resource "aws_cognito_user_pool" "users" {
   name = var.user_pool_name
 
@@ -30,7 +41,7 @@ resource "aws_cognito_user" "test_user" {
   user_pool_id = aws_cognito_user_pool.users.id
   username     = "testuser"
   password     = var.test_user_password
-  
+
   attributes = {
     email          = var.test_user_email
     email_verified = true

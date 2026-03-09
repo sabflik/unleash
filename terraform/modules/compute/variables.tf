@@ -1,7 +1,7 @@
 variable "regions" {
   description = "Regions to deploy compute resources to"
   type        = set(string)
-  default = []
+  default     = []
 }
 
 variable "cognito_user_pool_id" {

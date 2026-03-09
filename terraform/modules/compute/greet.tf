@@ -89,8 +89,8 @@ resource "aws_lambda_permission" "api_gateway_greet" {
 
 # API Gateway method response
 resource "aws_api_gateway_method_response" "greet_response" {
-  region        = each.key
-  for_each      = var.regions
+  region      = each.key
+  for_each    = var.regions
   rest_api_id = aws_api_gateway_rest_api.api[each.key].id
   resource_id = aws_api_gateway_resource.greet[each.key].id
   http_method = aws_api_gateway_method.greet_get[each.key].http_method
@@ -99,13 +99,13 @@ resource "aws_api_gateway_method_response" "greet_response" {
 
 # API Gateway integration response
 resource "aws_api_gateway_integration_response" "greet_integration_response" {
-  region        = each.key
-  for_each      = var.regions
-  rest_api_id      = aws_api_gateway_rest_api.api[each.key].id
-  resource_id      = aws_api_gateway_resource.greet[each.key].id
-  http_method      = aws_api_gateway_method.greet_get[each.key].http_method
-  status_code      = aws_api_gateway_method_response.greet_response[each.key].status_code
-  depends_on       = [aws_api_gateway_integration.greet_lambda]
+  region      = each.key
+  for_each    = var.regions
+  rest_api_id = aws_api_gateway_rest_api.api[each.key].id
+  resource_id = aws_api_gateway_resource.greet[each.key].id
+  http_method = aws_api_gateway_method.greet_get[each.key].http_method
+  status_code = aws_api_gateway_method_response.greet_response[each.key].status_code
+  depends_on  = [aws_api_gateway_integration.greet_lambda]
 }
 
 # API Gateway deployment
@@ -116,8 +116,8 @@ resource "aws_api_gateway_deployment" "greet_api" {
 
   triggers = {
     redeployment = sha1(jsonencode([
-        aws_api_gateway_integration.greet_lambda[each.key],
-        aws_api_gateway_method_response.greet_response[each.key]
+      aws_api_gateway_integration.greet_lambda[each.key],
+      aws_api_gateway_method_response.greet_response[each.key]
     ]))
   }
 
@@ -128,9 +128,9 @@ resource "aws_api_gateway_deployment" "greet_api" {
 
 # API Gateway stage
 resource "aws_api_gateway_stage" "greet_prod" {
-  for_each          = var.regions
-  region            = each.value
-  deployment_id     = aws_api_gateway_deployment.greet_api[each.key].id
-  rest_api_id       = aws_api_gateway_rest_api.api[each.key].id
-  stage_name        = "greet_prod"
+  for_each      = var.regions
+  region        = each.value
+  deployment_id = aws_api_gateway_deployment.greet_api[each.key].id
+  rest_api_id   = aws_api_gateway_rest_api.api[each.key].id
+  stage_name    = "greet_prod"
 }
