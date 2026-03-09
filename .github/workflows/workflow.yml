@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  terraform-lint:
+  tf-lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,3 +21,13 @@ jobs:
 
       - name: Run make tf-lint
         run: make tf-lint
+
+  tfsec:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run make tf-sec
+        run: make tf-sec
