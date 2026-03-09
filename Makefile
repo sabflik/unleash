@@ -18,7 +18,7 @@ tf-sec:
 .PHONY: tf-plan
 tf-plan:
 	@echo "==> Running terraform plan"
-	cd terraform && terraform plan -var-file=config.tfvars
+	cd terraform && terraform init && terraform plan -var-file=config.tfvars
 
 # Run python tests
 .PHONY: test
