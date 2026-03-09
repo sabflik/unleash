@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "greeting" {
-  for_each = toset(local.regions)
+  for_each = var.regions
   region = each.key
 
   name         = "GreetingLogs"

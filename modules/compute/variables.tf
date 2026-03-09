@@ -1,7 +1,7 @@
-variable "table_regions" {
-  description = "Map of regions to their provider references for DynamoDB tables"
-  type        = map(any)
-  default = {}
+variable "regions" {
+  description = "Regions to deploy compute resources to"
+  type        = set(string)
+  default = []
 }
 
 variable "cognito_user_pool_id" {
