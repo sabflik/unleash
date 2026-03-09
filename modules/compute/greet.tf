@@ -33,6 +33,12 @@ resource "aws_lambda_function" "greet" {
   filename         = data.archive_file.greet_lambda_zip.output_path
   source_code_hash = data.archive_file.greet_lambda_zip.output_base64sha256
 
+  environment {
+    variables = {
+      REGION = each.key
+    }
+  }
+
   depends_on = [aws_iam_role_policy_attachment.greet_lambda_basic]
 }
 
@@ -44,11 +50,13 @@ data "archive_file" "greet_lambda_zip" {
   source {
     content  = <<-EOT
       import json
+      import os
 
       def handler(event, context):
+          region = os.environ.get("REGION", "unknown")
           return {
               "statusCode": 200,
-              "body": json.dumps({"message": "Hello from greet endpoint!"})
+              "body": json.dumps({"region": region})
           }
     EOT
     filename = "index.py"
@@ -126,8 +134,3 @@ resource "aws_api_gateway_stage" "greet_prod" {
   rest_api_id       = aws_api_gateway_rest_api.api[each.key].id
   stage_name        = "greet_prod"
 }
-
-# output "greet_api_invoke_urls" {
-#   description = "Greet API Gateway invoke URLs by region"
-#   value       = { for k, v in aws_api_gateway_stage.greet_prod : k => v.invoke_url }
-# }

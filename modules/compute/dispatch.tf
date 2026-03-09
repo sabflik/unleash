@@ -21,6 +21,26 @@ resource "aws_iam_role_policy_attachment" "dispatch_lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# inline policy granting ECS run task permissions
+resource "aws_iam_role_policy" "dispatch_ecs_run" {
+  name = "dispatch-ecs-run-policy"
+  role = aws_iam_role.dispatch_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:RunTask",
+          "iam:PassRole"
+        ]
+        Resource = "*" # Restrict later as needed
+      }
+    ]
+  })
+}
+
 # Lambda function for /dispatch endpoint
 resource "aws_lambda_function" "dispatch" {
   for_each      = var.regions
@@ -33,7 +53,16 @@ resource "aws_lambda_function" "dispatch" {
   filename         = data.archive_file.dispatch_lambda_zip.output_path
   source_code_hash = data.archive_file.dispatch_lambda_zip.output_base64sha256
 
-  depends_on = [aws_iam_role_policy_attachment.dispatch_lambda_basic]
+  environment {
+    variables = {
+      CLUSTER_ARN    = aws_ecs_cluster.main[each.key].arn
+      TASK_DEFINITION = aws_ecs_task_definition.app[each.key].arn
+      SUBNET_ID      = aws_subnet.public[each.key].id
+      SECURITY_GROUP = aws_security_group.ecs_tasks[each.key].id
+    }
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.dispatch_lambda_basic, aws_iam_role_policy.dispatch_ecs_run]
 }
 
 # Archive the inline Lambda code
@@ -44,11 +73,34 @@ data "archive_file" "dispatch_lambda_zip" {
   source {
     content  = <<-EOT
       import json
+      import os
+      import boto3
+
+      ecs = boto3.client('ecs')
 
       def handler(event, context):
+          # run a Fargate task using environment variables
+          cluster = os.environ.get('CLUSTER_ARN')
+          task_def = os.environ.get('TASK_DEFINITION')
+          subnet = os.environ.get('SUBNET_ID')
+          sg = os.environ.get('SECURITY_GROUP')
+
+          response = ecs.run_task(
+              cluster=cluster,
+              launchType='FARGATE',
+              taskDefinition=task_def,
+              networkConfiguration={
+                  'awsvpcConfiguration': {
+                      'subnets': [subnet],
+                      'securityGroups': [sg],
+                      'assignPublicIp': 'ENABLED'
+                  }
+              }
+          )
+
           return {
-              "statusCode": 200,
-              "body": json.dumps({"message": "Hello from dispatch endpoint!"})
+              'statusCode': 200,
+              'body': json.dumps({'started': response.get('tasks', [])})
           }
     EOT
     filename = "index.py"
@@ -126,8 +178,3 @@ resource "aws_api_gateway_stage" "dispatch_prod" {
   rest_api_id       = aws_api_gateway_rest_api.api[each.key].id
   stage_name        = "dispatch_prod"
 }
-
-# output "dispatch_api_invoke_urls" {
-#   description = "dispatch API Gateway invoke URLs by region"
-#   value       = { for k, v in aws_api_gateway_stage.dispatch_prod : k => v.invoke_url }
-# }
