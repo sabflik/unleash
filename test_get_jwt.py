@@ -28,7 +28,7 @@ def api_url(region):
 
 def authenticate(username: str, password: str, pool_id: str, client_id: str) -> dict:
     """Initiate USER_PASSWORD_AUTH against Cognito and return auth result."""
-    client = boto3.client("cognito-idp")
+    client = boto3.client("cognito-idp", region_name="us-east-1")
     resp = client.initiate_auth(
         ClientId=client_id,
         AuthFlow="USER_PASSWORD_AUTH",
