@@ -134,3 +134,11 @@ resource "aws_api_gateway_stage" "greet_prod" {
   rest_api_id   = aws_api_gateway_rest_api.api[each.key].id
   stage_name    = "greet_prod"
 }
+
+resource "aws_ssm_parameter" "greet_url" {
+  for_each = var.regions
+  region   = each.value
+  name     = "/greet-url"
+  type     = "String"
+  value    = aws_api_gateway_stage.greet_prod[each.key].invoke_url
+}

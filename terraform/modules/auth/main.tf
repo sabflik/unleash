@@ -23,7 +23,12 @@ resource "aws_cognito_user_pool" "users" {
   auto_verified_attributes = ["email"]
 }
 
-// TODO: change auth flows to use OIDC and add a client secret
+resource "aws_ssm_parameter" "pool_id" {
+  name  = "/user-pool-id"
+  type  = "String"
+  value = aws_cognito_user_pool.users.id
+}
+
 resource "aws_cognito_user_pool_client" "web_app" {
   name         = var.user_pool_client_name
   user_pool_id = aws_cognito_user_pool.users.id
@@ -35,6 +40,12 @@ resource "aws_cognito_user_pool_client" "web_app" {
   ]
 
   prevent_user_existence_errors = "ENABLED"
+}
+
+resource "aws_ssm_parameter" "client_id" {
+  name  = "/user-pool-client-id"
+  type  = "String"
+  value = aws_cognito_user_pool_client.web_app.id
 }
 
 data "aws_secretsmanager_secret" "test_user_credentials" {
@@ -53,7 +64,7 @@ locals {
 
 resource "aws_cognito_user" "test_user" {
   user_pool_id = aws_cognito_user_pool.users.id
-  username     = "testuser"
+  username     = local.user_creds.username
   password     = local.user_creds.password
 
   attributes = {

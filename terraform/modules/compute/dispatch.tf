@@ -178,3 +178,11 @@ resource "aws_api_gateway_stage" "dispatch_prod" {
   rest_api_id   = aws_api_gateway_rest_api.api[each.key].id
   stage_name    = "dispatch_prod"
 }
+
+resource "aws_ssm_parameter" "dispatch_url" {
+  for_each = var.regions
+  region   = each.value
+  name     = "/dispatch-url"
+  type     = "String"
+  value    = aws_api_gateway_stage.dispatch_prod[each.key].invoke_url
+}

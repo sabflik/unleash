@@ -1,19 +1,30 @@
+import json
 import os
 import boto3
 import pytest
 import requests
-import logging
-logger = logging.getLogger(__name__)
+import time
 
 
-def api_url():
-    # url = os.environ.get("API_URL")
-    # TODO:
-    url = "https://pd51p133x2.execute-api.us-east-1.amazonaws.com/greet_prod"
-    if not url:
-        pytest.skip("API_URL not set")
-    return url
+def api_url(region):
+    ssm = boto3.client("ssm", region_name=region)
 
+    response = ssm.get_parameter(
+        Name="/greet-url",
+        WithDecryption=False
+    )
+    greet_url = response["Parameter"]["Value"]
+
+    response = ssm.get_parameter(
+        Name="/dispatch-url",
+        WithDecryption=False
+    )
+    dispatch_url = response["Parameter"]["Value"]
+
+    return {
+        "greet_url": greet_url,
+        "dispatch_url": dispatch_url
+    }
 
 def authenticate(username: str, password: str, pool_id: str, client_id: str) -> dict:
     """Initiate USER_PASSWORD_AUTH against Cognito and return auth result."""
@@ -31,10 +42,31 @@ def authenticate(username: str, password: str, pool_id: str, client_id: str) -> 
 
 @pytest.fixture(scope="module")
 def cognito_config():
-    pool_id = os.environ.get("USER_POOL_ID", "us-east-1_AjrIEPaaD")
-    client_id = os.environ.get("CLIENT_ID", "43uj0jvrtdev9ro6ob0shdjqas")
-    username = os.environ.get("USERNAME", "testuser")
-    password = os.environ.get("PASSWORD", "Testuser123!")
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    response = ssm.get_parameter(
+        Name="/user-pool-client-id",
+        WithDecryption=False
+    )
+    client_id = response["Parameter"]["Value"]
+
+    response = ssm.get_parameter(
+        Name="/user-pool-id",
+        WithDecryption=False
+    )
+    pool_id = response["Parameter"]["Value"]
+
+    client = boto3.client("secretsmanager")
+
+    response = client.get_secret_value(SecretId="cognito-user")
+
+    secret_string = response.get("SecretString")
+
+    secret_json = json.loads(secret_string)
+
+
+    username = secret_json.get("username")
+    password = secret_json.get("password")
 
     if not all([pool_id, client_id, password]):
         pytest.skip("Cognito credentials not set in environment")
@@ -46,8 +78,8 @@ def cognito_config():
         "password": password,
     }
 
-
-def test_can_retrieve_jwt(cognito_config):
+@pytest.mark.parametrize("region", ["us-east-1", "eu-west-1"])
+def test_can_retrieve_jwt(region, cognito_config):
     result = authenticate(
         cognito_config["username"],
         cognito_config["password"],
@@ -62,15 +94,17 @@ def test_can_retrieve_jwt(cognito_config):
 
     # make a request to /greet using the access token
     headers = {"Authorization": f"{result['IdToken']}"}
-    resp = requests.get(f"{api_url()}/greet", headers=headers)
+
+    # Time the request
+    start = time.perf_counter()
+    url = f"{api_url(region)["greet_url"]}/greet"
+    resp = requests.get(url, headers=headers)
+    latency = time.perf_counter() - start
+    print(f"{region} latency: {latency:.3f}s")
+
     assert resp.status_code == 200
     data = resp.json()
     assert "region" in data, "response json must include region"
 
     # if a test region is provided, validate against it
-    expected_region = "us-east-1"  # or get from env/config
-    if expected_region:
-        assert data["region"] == expected_region
-    else:
-        # fallback: just ensure the field is not empty
-        assert data["region"]
+    assert data["region"] == region

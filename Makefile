@@ -24,4 +24,4 @@ tf-plan:
 .PHONY: test
 test:
 	@echo "==> Running Python tests"
-	pytest -v test_get_jwt.py
+	pytest -s test_get_jwt.py
