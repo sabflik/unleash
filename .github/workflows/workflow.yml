@@ -87,5 +87,5 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run make test
-        run: make test
+      - name: Run pytest
+        run: pytest
