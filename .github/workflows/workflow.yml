@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  tf-lint:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
       - name: Run make tf-lint
         run: make tf-lint
 
-  tfsec:
+  security:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Run make tf-sec
         run: make tf-sec
 
-  tf-plan:
+  plan:
     runs-on: ubuntu-latest
 
     permissions:
@@ -61,3 +61,31 @@ jobs:
 
       - name: Run make tf-plan
         run: make tf-plan
+
+  test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: python:3.11-slim
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT }}:role/unleash-challenge
+          aws-region: ap-southeast-2
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run make test
+        run: make test
