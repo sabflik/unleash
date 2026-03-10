@@ -37,13 +37,27 @@ resource "aws_cognito_user_pool_client" "web_app" {
   prevent_user_existence_errors = "ENABLED"
 }
 
+data "aws_secretsmanager_secret" "test_user_credentials" {
+  name = "cognito-user"
+}
+
+data "aws_secretsmanager_secret_version" "test_user_credentials" {
+  secret_id = data.aws_secretsmanager_secret.test_user_credentials.id
+}
+
+locals {
+  user_creds = jsondecode(
+    data.aws_secretsmanager_secret_version.test_user_credentials.secret_string
+  )
+}
+
 resource "aws_cognito_user" "test_user" {
   user_pool_id = aws_cognito_user_pool.users.id
   username     = "testuser"
-  password     = var.test_user_password
+  password     = local.user_creds.password
 
   attributes = {
-    email          = var.test_user_email
+    email          = local.user_creds.email
     email_verified = true
   }
 }

@@ -14,9 +14,3 @@ variable "test_user_email" {
   description = "Email for the test user"
   type        = string
 }
-
-variable "test_user_password" {
-  description = "Temporary password for the test user"
-  type        = string
-  sensitive   = true
-}

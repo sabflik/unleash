@@ -9,9 +9,6 @@ crash.log
 # Local .terraform directories
 .terraform/
 
-# Sensitive variable files
-*.tfvars
-
 # Override files
 override.tf
 override.tf.json
