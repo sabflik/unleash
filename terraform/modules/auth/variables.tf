@@ -9,8 +9,3 @@ variable "user_pool_client_name" {
   type        = string
   default     = "user_pool_client"
 }
-
-variable "test_user_email" {
-  description = "Email for the test user"
-  type        = string
-}
