@@ -56,7 +56,7 @@ def cognito_config():
     )
     pool_id = response["Parameter"]["Value"]
 
-    client = boto3.client("secretsmanager")
+    client = boto3.client("secretsmanager", region_name="us-east-1")
 
     response = client.get_secret_value(SecretId="cognito-user")
 
