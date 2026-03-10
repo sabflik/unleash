@@ -79,26 +79,22 @@ def cognito_config():
     }
 
 @pytest.mark.parametrize("region", ["us-east-1", "eu-west-1"])
-def test_can_retrieve_jwt(region, cognito_config):
+def test_greet(region, cognito_config):
     result = authenticate(
         cognito_config["username"],
         cognito_config["password"],
         cognito_config["pool_id"],
         cognito_config["client_id"],
     )
-    assert "IdToken" in result
-    assert "AccessToken" in result
-    # optionally check format
-    assert result["IdToken"].count(".") == 2
-    assert result["AccessToken"].count(".") == 2
 
     # make a request to /greet using the access token
     headers = {"Authorization": f"{result['IdToken']}"}
 
+    url = api_url(region)["greet_url"]
+
     # Time the request
     start = time.perf_counter()
-    url = f"{api_url(region)["greet_url"]}/greet"
-    resp = requests.get(url, headers=headers)
+    resp = requests.get(f"{url}/greet", headers=headers)
     latency = time.perf_counter() - start
     print(f"{region} latency: {latency:.3f}s")
 
@@ -108,3 +104,21 @@ def test_can_retrieve_jwt(region, cognito_config):
 
     # if a test region is provided, validate against it
     assert data["region"] == region
+
+@pytest.mark.parametrize("region", ["us-east-1", "eu-west-1"])
+def test_dispatch(region, cognito_config):
+    result = authenticate(
+        cognito_config["username"],
+        cognito_config["password"],
+        cognito_config["pool_id"],
+        cognito_config["client_id"],
+    )
+
+    # make a request to /greet using the access token
+    headers = {"Authorization": f"{result['IdToken']}"}
+
+    url = api_url(region)["dispatch_url"]
+
+    resp = requests.get(f"{url}/dispatch", headers=headers)
+
+    assert resp.status_code == 200

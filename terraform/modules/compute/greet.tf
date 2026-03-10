@@ -21,6 +21,24 @@ resource "aws_iam_role_policy_attachment" "greet_lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy" "greet_lambda_policy" {
+  name = "greet-lambda-policy"
+  role = aws_iam_role.greet_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:PutItem",
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:dynamodb:*:*:table/GreetingLogs"
+      }
+    ]
+  })
+}
+
 # Lambda function for /greet endpoint
 resource "aws_lambda_function" "greet" {
   for_each      = var.regions
@@ -51,6 +69,23 @@ data "archive_file" "greet_lambda_zip" {
     content  = <<-EOT
       import json
       import os
+      import boto3
+      from datetime import datetime
+
+      # Initialize DynamoDB client
+      dynamodb = boto3.resource("dynamodb")
+
+      # Reference the table
+      table = dynamodb.Table("GreetingLogs")
+
+      # Item to insert
+      item = {
+          "ID": datetime.utcnow().strftime("%Y%m%d%H%M%S%f"),
+          "created_at": datetime.utcnow().isoformat()
+      }
+
+      # Write item
+      table.put_item(Item=item)
 
       def handler(event, context):
           region = os.environ.get("REGION", "unknown")

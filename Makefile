@@ -20,6 +20,12 @@ tf-plan:
 	@echo "==> Running terraform plan"
 	cd terraform && terraform init && terraform plan -var-file=config.tfvars
 
+# Run terraform apply
+.PHONY: tf-apply
+tf-apply:
+	@echo "==> Running terraform apply"
+	cd terraform && terraform apply -var-file=config.tfvars
+
 # Run python tests
 .PHONY: test
 test:

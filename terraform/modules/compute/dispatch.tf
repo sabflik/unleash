@@ -99,8 +99,7 @@ data "archive_file" "dispatch_lambda_zip" {
           )
 
           return {
-              'statusCode': 200,
-              'body': json.dumps({'started': response.get('tasks', [])})
+              'statusCode': 200
           }
     EOT
     filename = "index.py"
