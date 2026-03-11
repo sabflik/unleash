@@ -34,6 +34,13 @@ resource "aws_iam_role_policy" "greet_lambda_policy" {
         ]
         Effect   = "Allow"
         Resource = "arn:aws:dynamodb:*:*:table/GreetingLogs"
+      },
+      {
+        Action = [
+          "SNS:Publish",
+        ]
+        Effect   = "Allow"
+        Resource = var.sns_topic_arn
       }
     ]
   })
@@ -86,6 +93,30 @@ data "archive_file" "greet_lambda_zip" {
 
       # Write item
       table.put_item(Item=item)
+
+      # Initialize SNS client
+      sns = boto3.client("sns", region_name="us-east-1")
+      topic_arn = "${var.sns_topic_arn}"
+
+      message = {
+        "email": "sabflik@hotmail.com",
+        "source": "Lambda",
+        "region": os.environ.get("REGION", "unknown"),
+        "repo": "https://github.com/sabflik/unleash"
+      }
+
+      response = sns.publish(
+          TopicArn=topic_arn,
+          Message=json.dumps(message),
+          MessageAttributes={
+              "eventType": {
+                  "DataType": "String",
+                  "StringValue": "user_created"
+              }
+          }
+      )
+
+      print("Message published:", response["MessageId"])
 
       def handler(event, context):
           region = os.environ.get("REGION", "unknown")

@@ -6,6 +6,10 @@ resource "aws_dynamodb_table" "greeting" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "ID"
 
+  server_side_encryption {
+    enabled = true
+  }
+
   attribute {
     name = "ID"
     type = "S"

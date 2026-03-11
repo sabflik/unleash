@@ -44,6 +44,24 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
+resource "aws_iam_role_policy" "dispatch_ecs_policy" {
+  name = "dispatch-ecs-policy"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "SNS:Publish",
+        ]
+        Effect   = "Allow"
+        Resource = var.sns_topic_arn
+      }
+    ]
+  })
+}
+
 # Attach the default ECS task execution policy
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
@@ -116,7 +134,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name      = "compute-app"
+      name      = "publish-app"
       image     = var.container_image
       essential = true
       portMappings = [
@@ -134,6 +152,14 @@ resource "aws_ecs_task_definition" "app" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
+      command = [
+        "sns",
+        "publish",
+        "--topic-arn",
+        "${var.sns_topic_arn}",
+        "--message",
+        "{\"email\": \"sabflik@hotmail.com\",\"source\": \"ECS\", \"region\": \"$AWS_REGION\", \"repo\":\"https://github.com/sabflik/unleash\"}"
+      ]
     }
   ])
 }

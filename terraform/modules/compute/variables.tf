@@ -50,3 +50,9 @@ variable "ecs_desired_count" {
   type        = number
   default     = 1
 }
+
+variable "sns_topic_arn" {
+  description = "ARN of SNS topic for Unleash Live events"
+  type        = string
+  default     = "arn:aws:sns:us-east-1:637226132752:Candidate-Verification-Topic"
+}
