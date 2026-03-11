@@ -34,6 +34,8 @@ From the project folder, run the make command `make tf-apply` which will initial
 ## Testing Instructions
 Run `pip install -r requirements.txt` and `make test` to run the pytest test suite.
 
+NOTE: The tests are currently failing in the pipeline because the infrastructure is destroyed. Here's a passing pipeline: https://github.com/sabflik/unleash/actions/runs/22904910916
+
 ## Project Structure
 This multi-region Terraform deployment is broken into 2 modules `auth` and `compute`. The `main.tf` file contains the AWS provider in `us-east-1` region, automatically inherited by the modules. The `auth` module contains the cognito config and deploys to this region. The `compute` module which contains the APIs and lambdas also use this default provider. However, the resources all have the `region` property which can be used to specify another region to deploy into. I have used the `for_each` and `region` keywords to achieve multi-region resources without duplicating code.
 
