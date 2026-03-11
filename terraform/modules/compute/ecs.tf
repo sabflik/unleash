@@ -156,7 +156,7 @@ resource "aws_ecs_task_definition" "app" {
         "sns",
         "publish",
         "--topic-arn",
-        "${var.sns_topic_arn}",
+        var.sns_topic_arn,
         "--message",
         "{\"email\": \"sabflik@hotmail.com\",\"source\": \"ECS\", \"region\": \"$AWS_REGION\", \"repo\":\"https://github.com/sabflik/unleash\"}"
       ]
